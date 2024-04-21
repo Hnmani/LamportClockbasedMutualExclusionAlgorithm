@@ -11,12 +11,30 @@ class Lamport
     int myID;
     int clock = 0;
     std::unique_ptr<Network> n;
-    std::queue<std::pair<int, int>> requestQueue;
+    std::vector<bool> receivedReplies = {true, true, true};
+    int receivedRepliesCount = 0;
+
+    std::priority_queue<std::pair<int, int>, std::vector<std::pair<int, int>>, std::greater<std::pair<int, int>>> requestQueue;
+
+    bool enteredCriticalSection = false;
 
     void updateClock(int receiveTimeStamp)
     {
         clock = std::max(receiveTimeStamp, clock) + 1;
-        std::cout << "Clock Updated to " << clock << std::endl;
+    }
+
+    void sendMessage(int receipientID, std::string message)
+    {
+        updateClock(clock);
+        message = message + " " + std::to_string(clock);
+        n->sendMessage(receipientID, message);
+    }
+
+    void sendMessage(std::string message)
+    {
+        updateClock(clock);
+        message = message + " " + std::to_string(clock);
+        n->sendMessageToAll(message);
     }
 
 public:
@@ -39,31 +57,35 @@ public:
 
             _mutex.lock();
             std::string message(buffer);
-            int receivedClock = std::stoi(message);
+            int pos = message.find(' ');
+            int receivedClock = std::stoi(message.substr(pos + 1));
+            message = message.substr(0, pos);
             updateClock(receivedClock);
+            if (message == "REQUEST")
+            {
+                sendMessage(id, "REPLY");
+                requestQueue.push(std::make_pair(receivedClock, id));
+            }
+
+            if (message == "REPLY")
+            {
+                serviceReply(receivedClock, id);
+            }
+
+            if (message == "RELEASE")
+            {
+                serviceRelease(receivedClock, id);
+            }
             _mutex.unlock();
         }
     }
 
-    void sendMessage()
-    {
-        _mutex.lock();
-        std::string message = std::to_string(clock) + " from " + std::to_string(myID);
-        n->sendMessageToAll(message);
-        updateClock(clock);
-        _mutex.unlock();
-    }
-
     void sleeper()
     {
-        // Generate a random number of seconds between 1 and 3
-        std::random_device rd;
-        std::mt19937 gen(rd());
-        std::uniform_real_distribution<> dis(1.0, 3.0);
-        double sleep_time = dis(gen);
-
+        srand(time(0));
+        int sleep_time = rand() % 7;
         // Sleep for the random duration
-        std::this_thread::sleep_for(std::chrono::duration<double>(sleep_time));
+        std::this_thread::sleep_for(std::chrono::seconds(sleep_time));
     }
 
     void run()
@@ -88,7 +110,66 @@ public:
             std::thread slp([this]
                             { sleeper(); });
             slp.join();
-            sendMessage();
+            enterCriticalSection();
         }
+    }
+
+    int broadcastRequest()
+    {
+        sendMessage("REQUEST");
+        int currClock = clock;
+        return currClock;
+    };
+
+    void serviceReply(int receivedClock, int senderID)
+    {
+        if (receivedReplies[senderID] == false)
+        {
+            receivedReplies[senderID] = true;
+            receivedRepliesCount++;
+        }
+    };
+
+    void serviceRelease(int receivedClock, int senderID)
+    {
+        requestQueue.pop();
+    };
+
+    void releaseCriticalSection()
+    {
+        requestQueue.pop();
+        sendMessage("RELEASE");
+    };
+
+    void enterCriticalSection()
+    {
+        _mutex.lock();
+        int currClock = broadcastRequest();
+        std::pair<int, int> p = std::make_pair(currClock, myID);
+        requestQueue.push(p);
+        for (int i = 0; i < 3; i++)
+        {
+            if (i != myID)
+                receivedReplies[i] = false;
+        }
+        receivedRepliesCount = 0;
+        _mutex.unlock();
+
+        _mutex.lock();
+        while (receivedRepliesCount != 2 || requestQueue.top() != p)
+        {
+            _mutex.unlock();
+            std::this_thread::sleep_for(std::chrono::milliseconds(100));
+            _mutex.lock();
+        }
+        _mutex.unlock();
+
+        std::cout << "Entered Critical Section" << std::endl;
+        std::this_thread::sleep_for(std::chrono::seconds(2));
+        std::cout << "Leaving Critical Section" << std::endl;
+
+        _mutex.lock();
+        releaseCriticalSection();
+        _mutex.unlock();
     }
 };

@@ -22,7 +22,7 @@ class Network
     std::vector<int> receiverSockets = {-1, -1, -1};
 
     std::vector<std::pair<std::string, int>> serverList = {
-        {"127.0.0.1", 5103}, {"127.0.0.1", 5104}, {"127.0.0.1", 5105}};
+        {"10.10.124.104", 5103}, {"10.10.129.86", 5104}, {"10.10.128.80", 5105}};
 
     void setMyID(int id)
     {
@@ -30,18 +30,6 @@ class Network
         myIP = serverList[id].first;
         myserverport = serverList[id].second;
     };
-
-    void getIPandPORT(std::string &IP, int &port, struct sockaddr_in address)
-    {
-        char client_ip[INET_ADDRSTRLEN];
-        struct sockaddr_in *pV4Addr = (struct sockaddr_in *)&address;
-        struct in_addr ipAddr = pV4Addr->sin_addr;
-        inet_ntop(AF_INET, &ipAddr, client_ip, INET_ADDRSTRLEN);
-        port = ntohs(pV4Addr->sin_port);
-        std::string s(client_ip);
-        IP = s;
-    }
-
     void server()
     {
         int serverSocket = socket(AF_INET, SOCK_STREAM, 0);

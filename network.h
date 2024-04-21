@@ -22,7 +22,7 @@ class Network
     std::vector<int> receiverSockets = {-1, -1, -1};
 
     std::vector<std::pair<std::string, int>> serverList = {
-        {"127.0.0.1", 5103}, {"127.0.0.1", 5104}, {"127.0.0.1", 5105}};
+        {"10.10.37.55", 5103}, {"10.10.38.108", 5104}, {"10.10.38.108", 5105}};
 
     void setMyID(int id)
     {
@@ -181,24 +181,6 @@ public:
         }
     }
 
-    // void handleClient(int clientSocket, int id)
-    // {
-    //     char buffer[1024];
-    //     while (true)
-    //     {
-    //         memset(buffer, 0, sizeof(buffer));
-    //         int bytesReceived = recv(clientSocket, buffer, sizeof(buffer), 0);
-    //         if (bytesReceived <= 0)
-    //         {
-    //             std::cerr << id << " disconnected." << std::endl;
-    //             close(clientSocket);
-    //             return;
-    //         }
-    //         std::string message(buffer);
-    //         std::cout << id << " : " << message << std::endl;
-    //     }
-    // }
-
     void sendMessageToAll(std::string msg)
     {
         for (int i = 0; i < 3; i++)
@@ -208,6 +190,11 @@ public:
                 send(senderSockets[i], msg.c_str(), msg.size(), 0);
             }
         }
+    }
+
+    void sendMessage(int id, std::string msg)
+    {
+        send(senderSockets[id], msg.c_str(), msg.size(), 0);
     }
 
     std::vector<int> getReceiverSockets()

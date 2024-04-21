@@ -7,20 +7,19 @@
 #include <vector>
 #include <chrono>
 #include <random>
-
+#include <queue>
 class Lamport
 {
     std::mutex _mutex;
     int myID;
     int clock = 0;
     std::unique_ptr<Network> n;
+    std::queue<std::pair<int, int>> requestQueue;
 
     void updateClock(int receiveTimeStamp)
     {
-        _mutex.lock();
         clock = std::max(receiveTimeStamp, clock) + 1;
         std::cout << "Clock Updated to " << clock << std::endl;
-        _mutex.unlock();
     }
 
 public:
@@ -41,18 +40,20 @@ public:
                 exit(0);
             }
 
+            _mutex.lock();
             std::string message(buffer);
             int receivedClock = std::stoi(message);
             updateClock(receivedClock);
+            _mutex.unlock();
         }
     }
 
     void sendMessage()
     {
-        updateClock(clock);
         _mutex.lock();
         std::string message = std::to_string(clock) + " from " + std::to_string(myID);
         n->sendMessageToAll(message);
+        updateClock(clock);
         _mutex.unlock();
     }
 

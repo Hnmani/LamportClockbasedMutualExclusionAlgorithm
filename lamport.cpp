@@ -1,26 +1,30 @@
 #include "network.h"
+#include <iostream>
+#include <memory>
 #include <mutex>
+#include <string>
+#include <thread>
+#include <vector>
+#include <chrono>
+#include <random>
 
 class Lamport
 {
     std::mutex _mutex;
     int myID;
     int clock = 0;
-    Network *n = nullptr;
+    std::unique_ptr<Network> n;
+
     void updateClock(int receiveTimeStamp)
     {
         _mutex.lock();
-        clock = std::max(receiveTimeStamp, clock + 1);
+        clock = std::max(receiveTimeStamp, clock) + 1;
         std::cout << "Clock Updated to " << clock << std::endl;
         _mutex.unlock();
     }
 
 public:
-    Lamport(int id)
-    {
-        myID = id;
-        n = new Network(id);
-    }
+    Lamport(int id) : myID(id), n(std::make_unique<Network>(id)) {}
 
     void handleClient(int clientSocket, int id)
     {
@@ -33,14 +37,35 @@ public:
             {
                 std::cerr << id << " disconnected." << std::endl;
                 close(clientSocket);
+                std::cerr << "Should not have done that" << std::endl;
                 exit(0);
             }
 
             std::string message(buffer);
-            std::cout << id << " : " << message << std::endl;
-            int clock = stoi(message);
-            updateClock(clock);
+            int receivedClock = std::stoi(message);
+            updateClock(receivedClock);
         }
+    }
+
+    void sendMessage()
+    {
+        updateClock(clock);
+        _mutex.lock();
+        std::string message = std::to_string(clock) + " from " + std::to_string(myID);
+        n->sendMessageToAll(message);
+        _mutex.unlock();
+    }
+
+    void sleeper()
+    {
+        // Generate a random number of seconds between 1 and 3
+        std::random_device rd;
+        std::mt19937 gen(rd());
+        std::uniform_real_distribution<> dis(1.0, 3.0);
+        double sleep_time = dis(gen);
+
+        // Sleep for the random duration
+        std::this_thread::sleep_for(std::chrono::duration<double>(sleep_time));
     }
 
     void run()
@@ -60,15 +85,22 @@ public:
         {
             t.detach();
         }
-        std::string clocktime = std::to_string(clock);
-        n->sendMessageToAll(clocktime);
+        while (true)
+        {
+            std::thread slp([this]
+                            { sleeper(); });
+            slp.join();
+            sendMessage();
+        }
     }
 };
 
 int main()
 {
     int id;
+    std::cout << "Enter node ID: ";
     std::cin >> id;
-    Lamport l = Lamport(id);
+    Lamport l(id);
     l.run();
+    return 0;
 }

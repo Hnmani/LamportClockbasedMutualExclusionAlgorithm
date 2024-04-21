@@ -132,14 +132,38 @@ public:
 
     void serviceRelease(int receivedClock, int senderID)
     {
-        requestQueue.pop();
-    };
+        std::vector<std::pair<int, int>> toRemove;
+        while (!requestQueue.empty())
+        {
+            if (requestQueue.top().second != senderID)
+            {
+                toRemove.push_back(requestQueue.top());
+            }
+            requestQueue.pop();
+        }
+        for (const auto entry : toRemove)
+        {
+            requestQueue.push(entry);
+        }
+    }
 
     void releaseCriticalSection()
     {
-        requestQueue.pop();
+        std::vector<std::pair<int, int>> toRemove;
+        while (!requestQueue.empty())
+        {
+            if (requestQueue.top().second != myID)
+            {
+                toRemove.push_back(requestQueue.top());
+            }
+            requestQueue.pop();
+        }
+        for (const auto entry : toRemove)
+        {
+            requestQueue.push(entry);
+        }
         sendMessage("RELEASE");
-    };
+    }
 
     void enterCriticalSection()
     {
@@ -169,6 +193,7 @@ public:
         std::cout << "Leaving Critical Section" << std::endl;
 
         _mutex.lock();
+        std::this_thread::sleep_for(std::chrono::seconds(1));
         releaseCriticalSection();
         _mutex.unlock();
     }

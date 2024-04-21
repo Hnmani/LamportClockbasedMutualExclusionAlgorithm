@@ -93,7 +93,7 @@ class Network
 
             if (id != -1)
             {
-                std::cout << "Connected to P" << id << std::endl;
+                std::cout << "Connected to P: " << id << std::endl;
                 receiverSockets[id] = clientSocket;
                 connections--;
             }
@@ -130,8 +130,6 @@ class Network
 
         std::string hello = std::to_string(myID);
         send(sock, hello.c_str(), hello.size(), 0);
-
-        std::cout << "Connected" << std::endl;
         return sock;
     }
 
@@ -143,7 +141,6 @@ class Network
                 continue;
             else
             {
-                std::cout << "Trying to connect to " << i << std::endl;
                 senderSockets[i] = clientConnect(serverList[i].first, serverList[i].second);
             }
         }
@@ -167,7 +164,7 @@ public:
         setup();
         while (!serverSetup || !clientSetup)
             ;
-        std::cout << "Setup Done" << std::endl;
+        std::cout << "Network Setup Done" << std::endl;
     }
 
     ~Network()
@@ -184,23 +181,23 @@ public:
         }
     }
 
-    void handleClient(int clientSocket, int id)
-    {
-        char buffer[1024];
-        while (true)
-        {
-            memset(buffer, 0, sizeof(buffer));
-            int bytesReceived = recv(clientSocket, buffer, sizeof(buffer), 0);
-            if (bytesReceived <= 0)
-            {
-                std::cerr << id << " disconnected." << std::endl;
-                close(clientSocket);
-                return;
-            }
-            std::string message(buffer);
-            std::cout << id << " : " << message << std::endl;
-        }
-    }
+    // void handleClient(int clientSocket, int id)
+    // {
+    //     char buffer[1024];
+    //     while (true)
+    //     {
+    //         memset(buffer, 0, sizeof(buffer));
+    //         int bytesReceived = recv(clientSocket, buffer, sizeof(buffer), 0);
+    //         if (bytesReceived <= 0)
+    //         {
+    //             std::cerr << id << " disconnected." << std::endl;
+    //             close(clientSocket);
+    //             return;
+    //         }
+    //         std::string message(buffer);
+    //         std::cout << id << " : " << message << std::endl;
+    //     }
+    // }
 
     void sendMessageToAll(std::string msg)
     {

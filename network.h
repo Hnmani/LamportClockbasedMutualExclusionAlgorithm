@@ -22,7 +22,7 @@ class Network
     std::vector<int> receiverSockets = {-1, -1, -1};
 
     std::vector<std::pair<std::string, int>> serverList = {
-        {"10.10.37.55", 5103}, {"10.10.38.108", 5104}, {"10.10.38.108", 5105}};
+        {"127.0.0.1", 5103}, {"127.0.0.1", 5104}, {"127.0.0.1", 5105}};
 
     void setMyID(int id)
     {

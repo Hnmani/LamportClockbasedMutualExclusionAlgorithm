@@ -15,14 +15,14 @@ class Network
 {
     std::string myIP;
     int myID;
-    int myserverport;
+    int myserverport = 5000;
     bool serverSetup = false;
     bool clientSetup = false;
     std::vector<int> senderSockets = {-1, -1, -1};
     std::vector<int> receiverSockets = {-1, -1, -1};
 
     std::vector<std::pair<std::string, int>> serverList = {
-        {"10.10.124.104", 5103}, {"10.10.129.86", 5104}, {"10.10.128.80", 5105}};
+        {"10.10.124.104", 5100}, {"10.10.124.104", 5101}, {"10.10.124.104", 5102}};
 
     void setMyID(int id)
     {
